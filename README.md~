@@ -26,20 +26,8 @@ Replace the placeholders with your info.
 YourUserName
 YourPassword
 ```
-
-### Run docker-compose 
-
-Run in background:
-
-``` 
-docker-compose up -d
-```
-
-Run in foreground (useful for first launch):
-
-```
-docker-compose up
-```
+### Run docker-compose up -d to launch in the background. Exclude the -d
+### to watch output in foreground (useful for first launch).
 
 ### View logs to ensure everything works.
 
