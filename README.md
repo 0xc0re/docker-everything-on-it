@@ -1,0 +1,36 @@
+# Docker With Everything on It
+
+## A docker-compose file to create containers for jackett, sonarr, radarr, Plex
+(with relay removed and hardware transcoding hack), Tautulli, Transmission,
+and an OpenVPN tunnel to Private Internet Access (PIA).
+
+
+## Getting Started
+
+
+### Checkout this repository.
+```
+git checkout https://github.com/0xc0re/docker-everything-on-it docker
+```
+### Modify as needed.
+
+The docker-compose.yml and .env files need to be modified. The .env file contains environment variables
+that define the timezone, storage directory, PUID, and PGID used by the
+containers.
+
+### Modify the 'config/pia/auth.conf' file with your PIA credentials.
+
+Replace the placeholders with your info.
+
+```
+YourUserName
+YourPassword
+```
+### Run docker-compose up -d to launch in the background. Exclude the -d
+### to watch output in foreground (useful for first launch).
+
+### View logs to ensure everything works.
+
+```
+docker logs plex -f
+```
