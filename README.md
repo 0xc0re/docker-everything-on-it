@@ -1,8 +1,9 @@
 # Docker With Everything on It
 
-## A docker-compose file to create containers for jackett, sonarr, radarr, Plex
-(with relay removed and hardware transcoding hack), Tautulli, Transmission,
-and an OpenVPN tunnel to Private Internet Access (PIA).
+## Jackett, Sonarr, Radarr, Plex, Tautulli, Transmission, OpenVPN
+
+
+Plex includes hack to enable NVDEC support and removes Plex Relay.
 
 
 ## Getting Started
