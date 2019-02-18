@@ -3,7 +3,7 @@
 ### Jackett, Sonarr, Radarr, Plex, Tautulli, Transmission, OpenVPN
 
 
-The Plex image includes a 'hack' to enable NVDEC support and also removes Plex Relay.
+The Plex image includes a 'hack' to enable NVDEC support and also removes Plex Relay. 
 
 
 
