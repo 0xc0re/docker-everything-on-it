@@ -11,7 +11,7 @@ The Plex image includes a 'hack' to enable NVDEC support and also removes Plex R
 
 
 
-###Checkout this repository
+### Checkout this repository
 ```
 git checkout https://github.com/0xc0re/docker-everything-on-it docker
 ```
