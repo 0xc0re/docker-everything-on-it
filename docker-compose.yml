@@ -9,49 +9,30 @@ networks:
                 - subnet: 192.168.22.0/24
 
 services:
-
-    vpn:
-        container_name: pia
-        hostname: pia
-        image: itsdaspecialk/pia-openvpn:latest
-        restart: unless-stopped
-        volumes:
-            - ${STORAGE_DIRECTORY}/docker/config/pia/auth.conf:/pia/auth.conf
-        cap_add:
-            - NET_ADMIN
+    transmission-openvpn:
+        container_name: transmission-openvpn
+        image: haugene/transmission-openvpn:latest
+        devices:
+            - /dev/net/tun
+        restart: always
         dns:
             - 1.1.1.1
             - 1.0.0.1
-        sysctls:
-            - net.ipv6.conf.all.disable_ipv6=1
-        environment:
-            - REGION=US Texas
-            - PGID
-            - PUID
-            - TZ
-        networks:
-            pia_network:
-                ipv4_address: 192.168.22.50
-        command: "--auth-user-pass auth.conf"
-
-    torrent:
-        container_name: transmission
-        image: linuxserver/transmission:latest
-        restart: unless-stopped
         volumes:
-            - ${STORAGE_DIRECTORY}/docker/config/transmission:/config
+            - ${STORAGE_DIRECTORY}/docker/config/transmission-openvpn:/config
             - ${STORAGE_DIRECTORY}/downloads/complete:${STORAGE_DIRECTORY}/downloads/complete
             - ${STORAGE_DIRECTORY}/downloads/incomplete:${STORAGE_DIRECTORY}/downloads/incomplete
             - ${STORAGE_DIRECTORY}/downloads/watch:${STORAGE_DIRECTORY}/downloads/watch
+            - /etc/localtime:/etc/localtime:ro
         environment:
             - TZ
             - PGID
             - PUID
-        network_mode: service:vpn
+            - OPENVPN_OPTS=--inactive 3600 --ping 10 --ping-exit 60
         sysctls:
             - net.ipv6.conf.all.disable_ipv6=1
-        depends_on:
-            - vpn
+        networks:
+            everything_network: 192.168.22.50
     
     proxy:
         container_name: nginx
@@ -67,7 +48,7 @@ services:
             - PGID
             - PUID
         networks:
-            pia_network:
+            everything_network:
                 ipv4_address: 192.168.22.51
         sysctls:
             - net.ipv6.conf.all.disable_ipv6=1   
@@ -90,7 +71,7 @@ services:
         ports:
             - "8989:8989"
         networks:
-            pia_network:
+            everything_network:
                 ipv4_address: 192.168.22.52
         sysctls:
             - net.ipv6.conf.all.disable_ipv6=1
@@ -115,7 +96,7 @@ services:
         sysctls:
             - net.ipv6.conf.all.disable_ipv6=1
         networks:
-            pia_network:
+            everything_network:
                 ipv4_address: 192.168.22.53
 
     jackett:
@@ -136,7 +117,7 @@ services:
         sysctls:
             - net.ipv6.conf.all.disable_ipv6=1
         networks:
-            pia_network:
+            everything_network:
                 ipv4_address: 192.168.22.54
     
     plex:
