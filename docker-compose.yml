@@ -30,14 +30,6 @@ services:
             - ${STORAGE_DIRECTORY}/downloads:/data
             - ${STORAGE_DIRECTORY}/docker/config/transmission-openvpn/web:/transmission-home
             - /etc/localtime:/etc/localtime:ro
-        environment:
-            - TZ
-            - PGID
-            - PUID
-            - WEBPROXY_ENABLED
-            - OPENVPN_PROVIDER
-            - OPENVPN_OPTS
-            - OPENVPN_CONFIG
         sysctls:
             - net.ipv6.conf.all.disable_ipv6=1
         networks:
@@ -53,10 +45,6 @@ services:
             - ${STORAGE_DIRECTORY}/docker/config/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
         ports:
             - "9091:9091"
-        environment:
-            - TZ
-            - PGID
-            - PUID
         networks:
             everything-network:
                 ipv4_address: 192.168.22.51
@@ -74,10 +62,6 @@ services:
             - ${STORAGE_DIRECTORY}/downloads/incomplete:${STORAGE_DIRECTORY}/downloads/incomplete
             - ${STORAGE_DIRECTORY}/video/tv:${STORAGE_DIRECTORY}/video/tv
             - /etc/localtime:/etc/localtime:ro
-        environment:
-            - TZ
-            - PGID
-            - PUID
         ports:
             - "8989:8989"
         networks:
@@ -97,10 +81,6 @@ services:
             - ${STORAGE_DIRECTORY}/downloads/incomplete:${STORAGE_DIRECTORY}/downloads/incomplete
             - ${STORAGE_DIRECTORY}/video/movie:${STORAGE_DIRECTORY}/video/movie
             - /etc/localtime:/etc/localtime:ro
-        environment:
-            - TZ
-            - PGID
-            - PUID
         ports:
             - "7878:7878"
         sysctls:
@@ -118,10 +98,6 @@ services:
             - ${STORAGE_DIRECTORY}/docker/config/jackett:/config
             - ${STORAGE_DIRECTORY}/downloads/complete:${STORAGE_DIRECTORY}/downloads/complete
             - /etc/localtime:/etc/localtime:ro
-        environment:
-            - TZ
-            - PGID
-            - PUID
         ports:
             - "9117:9117"
         sysctls:
@@ -133,7 +109,7 @@ services:
     plex:
         container_name: plex
         hostname: plex
-        image: adnanklink/plex-norelay-hwdecoding
+        image: adnanklink/plex-norelay-hwdecoding:latest
         restart: unless-stopped
         network_mode: host
         mem_limit: 32768m
@@ -146,19 +122,9 @@ services:
             - ${STORAGE_DIRECTORY}/video/tv:/mnt/storage/video/tv
             - ${STORAGE_DIRECTORY}/audio:/mnt/storage/audio
             - ${STORAGE_DIRECTORY}/photos:/mnt/storage/photos
-        environment:
-            - TZ
-            - PGID
-            - PUID
-            - VERSION=latest
-            - NVIDIA_VISIBLE_DEVICES=all
     tautulli:
         image: linuxserver/tautulli
         container_name: tautulli
-        environment:
-            - PUID
-            - PGID
-            - TZ
         volumes:
             - ${STORAGE_DIRECTORY}/docker/config/tautulli:/config
             - ${STORAGE_DIRECTORY}/docker/config/plex/plex_db/Library/Application\ Support/Plex\ Media\ Server/Logs:/logs
