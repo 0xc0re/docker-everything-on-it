@@ -1,7 +1,7 @@
 version: '2.1'
 
 networks:
-    pia_network:
+    everything-network:
         enable_ipv6: false
         driver: bridge
         ipam:
@@ -12,6 +12,10 @@ services:
     transmission-openvpn:
         container_name: transmission-openvpn
         image: haugene/transmission-openvpn:latest
+        env_file:
+            - TransmissionEnv
+        cap_add:
+            - NET_ADMIN
         devices:
             - /dev/net/tun
         restart: always
@@ -20,23 +24,28 @@ services:
             - 1.0.0.1
         volumes:
             - ${STORAGE_DIRECTORY}/docker/config/transmission-openvpn:/config
-            - ${STORAGE_DIRECTORY}/downloads/complete:${STORAGE_DIRECTORY}/downloads/complete
-            - ${STORAGE_DIRECTORY}/downloads/incomplete:${STORAGE_DIRECTORY}/downloads/incomplete
-            - ${STORAGE_DIRECTORY}/downloads/watch:${STORAGE_DIRECTORY}/downloads/watch
+            - ${STORAGE_DIRECTORY}/downloads/complete:/complete
+            - ${STORAGE_DIRECTORY}/downloads/incomplete:/incomplete
+            - ${STORAGE_DIRECTORY}/downloads/watch:/watch
+            - ${STORAGE_DIRECTORY}/downloads:/data
+            - ${STORAGE_DIRECTORY}/docker/config/transmission-openvpn/web:/transmission-home
             - /etc/localtime:/etc/localtime:ro
         environment:
             - TZ
             - PGID
             - PUID
-            - OPENVPN_OPTS=--inactive 3600 --ping 10 --ping-exit 60
+            - WEBPROXY_ENABLED
+            - OPENVPN_PROVIDER
+            - OPENVPN_OPTS
         sysctls:
             - net.ipv6.conf.all.disable_ipv6=1
         networks:
-            everything_network: 192.168.22.50
+            everything-network:
+                ipv4_address: 192.168.22.50
     
     proxy:
-        container_name: nginx
-        hostname: nginx
+        container_name: nginx-transmission-proxy
+        hostname: nginx-transmission-proxy
         image: nginx:latest
         restart: unless-stopped
         volumes:
@@ -48,7 +57,7 @@ services:
             - PGID
             - PUID
         networks:
-            everything_network:
+            everything-network:
                 ipv4_address: 192.168.22.51
         sysctls:
             - net.ipv6.conf.all.disable_ipv6=1   
@@ -71,7 +80,7 @@ services:
         ports:
             - "8989:8989"
         networks:
-            everything_network:
+            everything-network:
                 ipv4_address: 192.168.22.52
         sysctls:
             - net.ipv6.conf.all.disable_ipv6=1
@@ -96,7 +105,7 @@ services:
         sysctls:
             - net.ipv6.conf.all.disable_ipv6=1
         networks:
-            everything_network:
+            everything-network:
                 ipv4_address: 192.168.22.53
 
     jackett:
@@ -117,7 +126,7 @@ services:
         sysctls:
             - net.ipv6.conf.all.disable_ipv6=1
         networks:
-            everything_network:
+            everything-network:
                 ipv4_address: 192.168.22.54
     
     plex:
