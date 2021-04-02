@@ -131,7 +131,6 @@ services:
             - TZ
             - VERSION=latest
             - NVIDIA_VISIBLE_DEVICES=all
-#            - PLEX_CLAIM=claim-pAkzk_6sXpf5-JUqVD4s
         volumes:
             - ${CONFIG_DIRECTORY}/plex/plex_db:/config:rw
             - /dev/shm:/transcode:rw
