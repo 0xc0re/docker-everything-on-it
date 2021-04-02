@@ -1,4 +1,4 @@
-version: '2.1'
+version: '2.3'
 
 networks:
     everything-network:
@@ -23,52 +23,60 @@ services:
             - 1.1.1.1
             - 1.0.0.1
         volumes:
-            - ${STORAGE_DIRECTORY}/docker/config/transmission-openvpn:/config
+            - ${CONFIG_DIRECTORY}/transmission-openvpn:/config
             - ${STORAGE_DIRECTORY}/downloads/complete:/complete
             - ${STORAGE_DIRECTORY}/downloads/incomplete:/incomplete
             - ${STORAGE_DIRECTORY}/downloads/watch:/watch
             - ${STORAGE_DIRECTORY}/downloads:/data
-            - ${STORAGE_DIRECTORY}/docker/config/transmission-openvpn/web:/transmission-home
+            - ${CONFIG_DIRECTORY}/transmission-openvpn/web:/transmission-home
             - /etc/localtime:/etc/localtime:ro
-        sysctls:
-            - net.ipv6.conf.all.disable_ipv6=1
         networks:
             everything-network:
                 ipv4_address: 192.168.22.50
-    
+        environment:
+            - PUID
+            - PGID
+            - TZ
+            - OPENVPN_PROVIDER
+            - OPENVPN_OPTS
+            - OPENVPN_CONFIG
+            - LOCAL_NETWORK
     proxy:
         container_name: nginx-transmission-proxy
         hostname: nginx-transmission-proxy
         image: nginx:latest
         restart: unless-stopped
         volumes:
-            - ${STORAGE_DIRECTORY}/docker/config/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+            - ${CONFIG_DIRECTORY}/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
         ports:
             - "9091:9091"
+        environment:
+            - PUID
+            - PGID
+            - TZ
         networks:
             everything-network:
                 ipv4_address: 192.168.22.51
-        sysctls:
-            - net.ipv6.conf.all.disable_ipv6=1   
-
     sonarr:
         container_name: sonarr
         hostname: sonarr
         image: linuxserver/sonarr:latest        
         restart: unless-stopped
         volumes:
-            - ${STORAGE_DIRECTORY}/docker/config/sonarr:/config
+            - ${CONFIG_DIRECTORY}/sonarr:/config
             - ${STORAGE_DIRECTORY}/downloads/complete:${STORAGE_DIRECTORY}/downloads/complete
             - ${STORAGE_DIRECTORY}/downloads/incomplete:${STORAGE_DIRECTORY}/downloads/incomplete
             - ${STORAGE_DIRECTORY}/video/tv:${STORAGE_DIRECTORY}/video/tv
             - /etc/localtime:/etc/localtime:ro
         ports:
             - "8989:8989"
+        environment:
+            - PUID
+            - PGID
+            - TZ
         networks:
             everything-network:
                 ipv4_address: 192.168.22.52
-        sysctls:
-            - net.ipv6.conf.all.disable_ipv6=1
 
     radarr:
         container_name: radarr
@@ -76,15 +84,17 @@ services:
         image: linuxserver/radarr:latest        
         restart: unless-stopped
         volumes:
-            - ${STORAGE_DIRECTORY}/docker/config/radarr:/config
+            - ${CONFIG_DIRECTORY}/radarr:/config
             - ${STORAGE_DIRECTORY}/downloads/complete:${STORAGE_DIRECTORY}/downloads/complete
             - ${STORAGE_DIRECTORY}/downloads/incomplete:${STORAGE_DIRECTORY}/downloads/incomplete
             - ${STORAGE_DIRECTORY}/video/movie:${STORAGE_DIRECTORY}/video/movie
             - /etc/localtime:/etc/localtime:ro
         ports:
             - "7878:7878"
-        sysctls:
-            - net.ipv6.conf.all.disable_ipv6=1
+        environment:
+            - PUID
+            - PGID
+            - TZ
         networks:
             everything-network:
                 ipv4_address: 192.168.22.53
@@ -95,41 +105,54 @@ services:
         image: linuxserver/jackett:latest
         restart: unless-stopped
         volumes:
-            - ${STORAGE_DIRECTORY}/docker/config/jackett:/config
+            - ${CONFIG_DIRECTORY}/jackett:/config
             - ${STORAGE_DIRECTORY}/downloads/complete:${STORAGE_DIRECTORY}/downloads/complete
             - /etc/localtime:/etc/localtime:ro
         ports:
             - "9117:9117"
-        sysctls:
-            - net.ipv6.conf.all.disable_ipv6=1
         networks:
             everything-network:
                 ipv4_address: 192.168.22.54
-    
+        environment:
+            - PUID
+            - PGID
+            - TZ    
     plex:
         container_name: plex
         hostname: plex
-        image: adnanklink/plex-norelay-hwdecoding:latest
+        image: linuxserver/plex:latest
         restart: unless-stopped
         network_mode: host
-        mem_limit: 32768m
-        sysctls:
-            - net.ipv6.conf.all.disable_ipv6=1
+        mem_limit: 16384m
+        runtime: nvidia
+        environment:
+            - PUID
+            - PGID
+            - TZ
+            - VERSION=latest
+            - NVIDIA_VISIBLE_DEVICES=all
+#            - PLEX_CLAIM=claim-pAkzk_6sXpf5-JUqVD4s
         volumes:
-            - ${STORAGE_DIRECTORY}/docker/config/plex/plex_db:/config
-            - /dev/shm:/transcode
-            - ${STORAGE_DIRECTORY}/video/movie:/mnt/storage/video/movie
-            - ${STORAGE_DIRECTORY}/video/tv:/mnt/storage/video/tv
-            - ${STORAGE_DIRECTORY}/audio:/mnt/storage/audio
-            - ${STORAGE_DIRECTORY}/photos:/mnt/storage/photos
+            - ${CONFIG_DIRECTORY}/plex/plex_db:/config:rw
+            - /dev/shm:/transcode:rw
+            - ${STORAGE_DIRECTORY}/video/movie:/mnt/storage/video/movie:rw
+            - ${STORAGE_DIRECTORY}/video/tv:/mnt/storage/video/tv:rw
+            - ${STORAGE_DIRECTORY}/audio:/mnt/storage/audio:rw
+            - ${STORAGE_DIRECTORY}/photos:/mnt/storage/photos:rw
+        devices:
+            - /dev/dri:/dev/dri        
     tautulli:
         image: linuxserver/tautulli
         container_name: tautulli
         volumes:
-            - ${STORAGE_DIRECTORY}/docker/config/tautulli:/config
-            - ${STORAGE_DIRECTORY}/docker/config/plex/plex_db/Library/Application\ Support/Plex\ Media\ Server/Logs:/logs
+            - ${CONFIG_DIRECTORY}/tautulli:/config
+            - ${CONFIG_DIRECTORY}/plex/plex_db/Library/Application\ Support/Plex\ Media\ Server/Logs:/logs
         ports:
             - 8181:8181
         network_mode: host
         mem_limit: 4096m
         restart: unless-stopped
+        environment:
+            - PUID
+            - PGID
+            - TZ
