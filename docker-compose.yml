@@ -35,46 +35,9 @@ services:
             - PGID=${PGID}
             - TZ=${TZ}
         volumes:
-<<<<<<< HEAD
             - ${CONFIG_DIRECTORY}/qbittorrent:/config
             - ${STORAGE_DIRECTORY}/downloads:/downloads
             - ${STORAGE_DIRECTORY}/downloads:/data
-=======
-            - ${CONFIG_DIRECTORY}/transmission-openvpn:/config
-            - ${STORAGE_DIRECTORY}/downloads/complete:/complete
-            - ${STORAGE_DIRECTORY}/downloads/incomplete:/incomplete
-            - ${STORAGE_DIRECTORY}/downloads/watch:/watch
-            - ${STORAGE_DIRECTORY}/downloads:/data
-            - ${CONFIG_DIRECTORY}/transmission-openvpn/web:/transmission-home
-            - /etc/localtime:/etc/localtime:ro
-        networks:
-            everything-network:
-                ipv4_address: 192.168.22.50
-        environment:
-            - PUID
-            - PGID
-            - TZ
-            - OPENVPN_PROVIDER
-            - OPENVPN_OPTS
-            - OPENVPN_CONFIG
-            - LOCAL_NETWORK
-    proxy:
-        container_name: nginx-transmission-proxy
-        hostname: nginx-transmission-proxy
-        image: nginx:latest
-        restart: unless-stopped
-        volumes:
-            - ${CONFIG_DIRECTORY}/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-        ports:
-            - "9091:9091"
-        environment:
-            - PUID
-            - PGID
-            - TZ
-        networks:
-            everything-network:
-                ipv4_address: 192.168.22.51
->>>>>>> 9da34690b8b1df3cc68f7bcfa1d8006e7b3e85b8
     sonarr:
         container_name: sonarr
         hostname: sonarr
@@ -82,29 +45,15 @@ services:
         restart: unless-stopped
         volumes:
             - ${CONFIG_DIRECTORY}/sonarr:/config
-<<<<<<< HEAD
             - ${STORAGE_DIRECTORY}/downloads:/data
-=======
-            - ${STORAGE_DIRECTORY}/downloads/complete:${STORAGE_DIRECTORY}/downloads/complete
-            - ${STORAGE_DIRECTORY}/downloads/incomplete:${STORAGE_DIRECTORY}/downloads/incomplete
->>>>>>> 9da34690b8b1df3cc68f7bcfa1d8006e7b3e85b8
             - ${STORAGE_DIRECTORY}/video/tv:${STORAGE_DIRECTORY}/video/tv
             - /etc/localtime:/etc/localtime:ro
         ports:
             - "8989:8989"
         environment:
-<<<<<<< HEAD
             - PUID=${PUID}
             - PGID=${PGID}
             - TZ=${TZ}
-=======
-            - PUID
-            - PGID
-            - TZ
-        networks:
-            everything-network:
-                ipv4_address: 192.168.22.52
->>>>>>> 9da34690b8b1df3cc68f7bcfa1d8006e7b3e85b8
 
     radarr:
         container_name: radarr
@@ -113,18 +62,12 @@ services:
         restart: unless-stopped
         volumes:
             - ${CONFIG_DIRECTORY}/radarr:/config
-<<<<<<< HEAD
             - ${STORAGE_DIRECTORY}/downloads:/data
-=======
-            - ${STORAGE_DIRECTORY}/downloads/complete:${STORAGE_DIRECTORY}/downloads/complete
-            - ${STORAGE_DIRECTORY}/downloads/incomplete:${STORAGE_DIRECTORY}/downloads/incomplete
->>>>>>> 9da34690b8b1df3cc68f7bcfa1d8006e7b3e85b8
             - ${STORAGE_DIRECTORY}/video/movie:${STORAGE_DIRECTORY}/video/movie
             - /etc/localtime:/etc/localtime:ro
         ports:
             - "7878:7878"
         environment:
-<<<<<<< HEAD
             - PUID=${PUID}
             - PGID=${PGID}
             - TZ=${TZ}
@@ -141,19 +84,6 @@ services:
             - ${STORAGE_DIRECTORY}/downloads:/data            
         ports:
             - 8686:8686
-=======
-            - PUID
-            - PGID
-            - TZ
-        networks:
-            everything-network:
-                ipv4_address: 192.168.22.53
-
-    jackett:
-        container_name: jackett
-        hostname: jackett
-        image: linuxserver/jackett:latest
->>>>>>> 9da34690b8b1df3cc68f7bcfa1d8006e7b3e85b8
         restart: unless-stopped
     nzbget:
         image: ghcr.io/linuxserver/nzbget
@@ -163,26 +93,11 @@ services:
             - PGID=${PGID}
             - TZ=${TZ}
         volumes:
-<<<<<<< HEAD
             - ${CONFIG_DIRECTORY}/nzbget:/config
             - ${STORAGE_DIRECTORY}/downloads:/data
         ports:
             - 6789:6789
         restart: unless-stopped
-=======
-            - ${CONFIG_DIRECTORY}/jackett:/config
-            - ${STORAGE_DIRECTORY}/downloads/complete:${STORAGE_DIRECTORY}/downloads/complete
-            - /etc/localtime:/etc/localtime:ro
-        ports:
-            - "9117:9117"
-        networks:
-            everything-network:
-                ipv4_address: 192.168.22.54
-        environment:
-            - PUID
-            - PGID
-            - TZ    
->>>>>>> 9da34690b8b1df3cc68f7bcfa1d8006e7b3e85b8
     plex:
         container_name: plex
         hostname: plex
@@ -191,19 +106,12 @@ services:
         network_mode: host
         mem_limit: 16384m
         runtime: nvidia
-<<<<<<< HEAD
         security_opt:
             - seccomp=unconfined
         environment:
             - PUID=${PUID}
             - PGID=${PGID}
             - TZ=${TZ}
-=======
-        environment:
-            - PUID
-            - PGID
-            - TZ
->>>>>>> 9da34690b8b1df3cc68f7bcfa1d8006e7b3e85b8
             - VERSION=latest
             - NVIDIA_VISIBLE_DEVICES=all
         volumes:
@@ -212,22 +120,15 @@ services:
             - ${STORAGE_DIRECTORY}/video/movie:/mnt/storage/video/movie:rw
             - ${STORAGE_DIRECTORY}/video/tv:/mnt/storage/video/tv:rw
             - ${STORAGE_DIRECTORY}/audio:/mnt/storage/audio:rw
-<<<<<<< HEAD
             - ${STORAGE_DIRECTORY}/photos:/mnt/storage/photos:rw            
         devices:
             - /dev/dri:/dev/dri
-=======
-            - ${STORAGE_DIRECTORY}/photos:/mnt/storage/photos:rw
-        devices:
-            - /dev/dri:/dev/dri        
->>>>>>> 9da34690b8b1df3cc68f7bcfa1d8006e7b3e85b8
     tautulli:
         image: ghcr.io/linuxserver/tautulli
         container_name: tautulli
         volumes:
             - ${CONFIG_DIRECTORY}/tautulli:/config
             - ${CONFIG_DIRECTORY}/plex/plex_db/Library/Application\ Support/Plex\ Media\ Server/Logs:/logs
-<<<<<<< HEAD
         network_mode: host # Removed port binding for network_mode: host
         mem_limit: 4096m
         restart: unless-stopped
@@ -286,14 +187,3 @@ services:
         restart: unless-stopped
 volumes:
     pia-dat:
-=======
-        ports:
-            - 8181:8181
-        network_mode: host
-        mem_limit: 4096m
-        restart: unless-stopped
-        environment:
-            - PUID
-            - PGID
-            - TZ
->>>>>>> 9da34690b8b1df3cc68f7bcfa1d8006e7b3e85b8
