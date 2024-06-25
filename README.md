@@ -1,21 +1,11 @@
 # Docker With Everything on It
 
-### Jackett, Sonarr, Radarr, Plex, Tautulli, Transmission, OpenVPN
-
-
-The Plex image includes a 'hack' to enable NVDEC support and also removes Plex Relay. 
-
-
-
 ## Getting Started
-
-
 
 ### Checkout this repository
 ```
 git checkout https://github.com/0xc0re/docker-everything-on-it docker
 ```
-
 
 ### Modify as needed
 
@@ -24,13 +14,13 @@ that define the timezone, storage directory, PUID, and PGID used by the
 containers.
 
 
-### Modify the 'config/pia/auth.conf' file with your PIA credentials.
+### Modify the '.env' file with your PIA credentials.
 
 Replace the placeholders with your info.
 
 ```
-YourUserName
-YourPassword
+USER=PIA_USERNAME
+PASS=PIA_PASSWORD
 ```
 
 
