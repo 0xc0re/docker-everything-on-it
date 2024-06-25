@@ -2,9 +2,9 @@
 
 ## Getting Started
 
-### Checkout this repository
+### Clone this repository
 ```
-git checkout https://github.com/0xc0re/docker-everything-on-it docker
+git clone https://github.com/0xc0re/docker-everything-on-it docker
 ```
 
 ### Modify as needed
