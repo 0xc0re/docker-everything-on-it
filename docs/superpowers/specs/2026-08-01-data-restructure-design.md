@@ -270,6 +270,55 @@ truncate -s 0 /mnt/storage/downloads/nzbget/nzbget.log
 
 Investigate why rotation stalled; if unresolved, cap it with a logrotate entry.
 
+## Privileges
+
+**This migration runs entirely unprivileged as `c0re` (uid 1000). No sudo required.**
+
+Verified 2026-08-01:
+
+| Path | Owner | Writable as c0re |
+|---|---|---|
+| `/mnt/storage` | `nobody:nogroup` `drwxrwsr-x` | yes — c0re is in `nogroup` |
+| `/mnt/storage/video` (+ `movie`, `tv`) | `c0re:users` | yes — owner |
+| `/mnt/storage/audio` | `c0re:users` | yes — owner |
+| `/mnt/storage/downloads` (+ `complete`, `nzbget`) | `c0re:users` | yes — owner |
+| `nzbget.log` | `c0re:users` | yes — owner |
+| Docker socket | `docker` group | yes — c0re is in `docker` |
+
+The six renames, tree creation, log truncate, SQLite edits, config edits and all
+`docker compose` commands therefore need no elevation. Running an 8 TB restructure as
+root would add risk without adding capability — a mistyped `mv` or `rm` has a far larger
+blast radius. Keep it unprivileged.
+
+The only root-owned path in the wider plan is `config/overseer` (root:root), which belongs
+to the Seerr branch and is handled through the Docker socket rather than sudo, per the
+official migration guide:
+
+```bash
+docker run --rm -v ${CONFIG_DIRECTORY}/overseer/config:/data alpine chown -R 1000:1000 /data
+```
+
+### Note on the sudoers state
+
+Passwordless sudo was attempted but is **not currently active**. `sudo -l` reports:
+
+```
+(ALL) NOPASSWD: ALL      <- added to /etc/sudoers
+(ALL : ALL) ALL          <- stock %sudo group rule
+```
+
+Sudoers is last-match-wins, and the stock `%sudo` rule appears after the NOPASSWD line, so
+the password requirement is reinstated. The fix is a drop-in under `/etc/sudoers.d/`, which
+is included at the end of `/etc/sudoers` and therefore always wins:
+
+```bash
+echo 'c0re ALL=(ALL) NOPASSWD: ALL' | sudo tee /etc/sudoers.d/010-c0re-nopasswd
+sudo chmod 0440 /etc/sudoers.d/010-c0re-nopasswd
+sudo visudo -c
+```
+
+Irrelevant to this branch either way — recorded so the state is not re-investigated later.
+
 ## Execution order
 
 Containers stopped for the whole window. Expect roughly 15–30 minutes, dominated by
