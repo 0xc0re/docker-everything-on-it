@@ -167,8 +167,21 @@ UPDATE ImportLists SET RootFolderPath = REPLACE(RootFolderPath, '/music', '/data
 ```
 
 Run a `SELECT Path FROM ... LIMIT 5` before and after each statement and confirm the
-rewrite is correct. Lidarr's `/music` prefix is short and generic — verify no unintended
-matches before committing the transaction.
+rewrite is correct.
+
+### Pre-flight check (completed 2026-08-01)
+
+Every tracked item sits under its root folder, so the `REPLACE` statements are complete
+and cannot miss records or match unintended ones:
+
+```
+Sonarr:  140 series  — 0 with paths outside /mnt/storage/video/tv/
+Radarr:  906 movies  — 0 with paths outside /mnt/storage/video/movie/
+Lidarr:  288 artists — 0 with paths outside /music/
+```
+
+This resolves the concern about Lidarr's short `/music` prefix. Re-run this check
+immediately before the migration if the libraries have changed since.
 
 ## Adjacent fixes in scope
 
@@ -260,7 +273,7 @@ Investigate why rotation stalled; if unresolved, cap it with a logrotate entry.
 ## Execution order
 
 Containers stopped for the whole window. Expect roughly 15–30 minutes, dominated by
-verification rather than data movement.
+verification rather than data movement. Downtime window confirmed acceptable.
 
 1. Pause the NZBGet queue; let in-flight downloads drain.
 2. `docker compose down` (this stack only — nginx-proxy-manager and owrx are separate).
@@ -273,6 +286,8 @@ verification rather than data movement.
    - `video/movie`          -> `data/media/movies`
    - `video/tv`             -> `data/media/tv`
    - `audio`                -> `data/media/music`
+   - `video/Bluey Minisodes` -> `data/torrents/tv/Bluey Minisodes.manual`
+     (staged for manual import — see below, **not** merged into `media/tv/`)
 6. Apply the SQL re-pointing.
 7. Edit `qBittorrent.conf`, `categories.json`, `nzbget.conf`.
 8. Update `docker-compose.yml` and `docker-compose.plex.yml`.
@@ -309,11 +324,40 @@ renames, restore the three databases, `git checkout` the compose files, `docker 
 
 Keep the database backups until the stack has run clean for a week.
 
+## Bluey Minisodes — staged manual import
+
+**Decision: goes into the TV library, via Sonarr Manual Import rather than a direct move.**
+
+Sonarr already tracks `Bluey Minisodes` at `/mnt/storage/video/tv/Bluey Minisodes`
+(27 of 31 episodes, 0.71 GB). The loose copy at `/mnt/storage/video/Bluey Minisodes/`
+(1.1 GB, Season 1 only) is a **second copy using different episode numbering**:
+
+| Episode title | Loose copy | Tracked copy |
+|---|---|---|
+| Butlers | S01E17 — 123 MB WEBDL | S01E15 — 51 MB HDTV |
+| Goldilocks | S01E19 — 97 MB WEBDL | S01E17 — 29 MB HDTV |
+| Three Pigs | S01E06 — 93 MB WEBDL | — |
+| Tattoo Shop | — | S01E06 — 46 MB WEBDL |
+
+The same episodes carry different `S01Exx` numbers in each copy, and the loose files are
+the higher-quality versions (WEBDL vs HDTV, 2–3× the size). The tracked copy is the only
+one with Season 2.
+
+Merging the two directories with `mv` would collide two Season 1 folders whose numbering
+disagrees, producing mis-mapped episodes and silent duplicates. Instead:
+
+1. During step 5, move the loose copy to `data/torrents/tv/Bluey Minisodes.manual/`
+   rather than into `media/tv/`.
+2. After the migration is verified, use **Sonarr → Wanted → Manual Import** against that
+   path. Sonarr re-parses each file and maps it to the correct TVDB episode, offering the
+   WEBDL files as upgrades over the HDTV ones where they match.
+3. Delete the staging directory once the import is confirmed.
+
+This is decoupled from the migration and can happen any time afterward. Nothing is
+destroyed if it is deferred or abandoned.
+
 ## Open items
 
-- `/mnt/storage/video/Bluey Minisodes/` (1.1 GB) sits outside the TV root as a loose show
-  with a `Season 1` folder. Decide during step 5 whether it moves into `data/media/tv/` or
-  stays out of the library.
 - NZBGet's queue and scripts live in the data tree rather than `/config`. Left as-is to
   avoid queue loss; worth relocating in a later pass.
 
