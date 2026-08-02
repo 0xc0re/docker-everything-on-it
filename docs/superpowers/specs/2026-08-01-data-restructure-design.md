@@ -149,22 +149,25 @@ cp config/radarr/radarr.db{,.bak-20260801}
 cp config/lidarr/config/lidarr.db{,.bak-20260801}
 ```
 
-```sql
--- sonarr.db
-UPDATE RootFolders SET Path = '/data/media/tv'    WHERE Path = '/mnt/storage/video/tv';
-UPDATE Series      SET Path = REPLACE(Path, '/mnt/storage/video/tv', '/data/media/tv');
-UPDATE ImportLists SET RootFolderPath = REPLACE(RootFolderPath, '/mnt/storage/video/tv', '/data/media/tv');
+Three tables per app: `RootFolders.Path`, the main entity table `.Path`, and
+`ImportLists.RootFolderPath`. Schemas confirmed present in all three databases; Lidarr has
+3 import list rows that a `RootFolders`-only rewrite would miss.
 
--- radarr.db
-UPDATE RootFolders SET Path = '/data/media/movies' WHERE Path = '/mnt/storage/video/movie';
-UPDATE Movies      SET Path = REPLACE(Path, '/mnt/storage/video/movie', '/data/media/movies');
-UPDATE ImportLists SET RootFolderPath = REPLACE(RootFolderPath, '/mnt/storage/video/movie', '/data/media/movies');
+| App | Tables | Old prefix | New prefix |
+|---|---|---|---|
+| Sonarr | `RootFolders`, `Series`, `ImportLists` | `/mnt/storage/video/tv` | `/data/media/tv` |
+| Radarr | `RootFolders`, `Movies`, `ImportLists` | `/mnt/storage/video/movie` | `/data/media/movies` |
+| Lidarr | `RootFolders`, `Artists`, `ImportLists` | `/music` | `/data/media/music` |
 
--- lidarr.db
-UPDATE RootFolders SET Path = '/data/media/music' WHERE Path = '/music';
-UPDATE Artists     SET Path = REPLACE(Path, '/music', '/data/media/music');
-UPDATE ImportLists SET RootFolderPath = REPLACE(RootFolderPath, '/music', '/data/media/music');
-```
+The rewrite is prefix-anchored — a path changes only when it equals the old prefix or
+begins with it followed by `/` — rather than a substring `REPLACE`. On the current data
+both forms produce identical results, so this is not correcting an existing hazard; it is
+chosen so the operation stays correct if a future path repeats the prefix substring.
+
+**`sqlite3` is not installed on this host.** The implementation plan uses Python's
+built-in `sqlite3` module instead, which needs no packages. The helper was tested against
+copies of the live databases during planning: 140/140 Sonarr series and 288/288 Lidarr
+artists rewritten, zero residual, zero double-prefixing.
 
 Run a `SELECT Path FROM ... LIMIT 5` before and after each statement and confirm the
 rewrite is correct.
