@@ -6,7 +6,7 @@
 # QBT_USER/QBT_PASS in the vpn service environment.
 set -euo pipefail
 PORT="${1:?forwarded port required as \$1}"
-QBT_URL="${QBT_URL:-http://127.0.0.1:8080}"
+QBT_URL="${QBT_URL:-http://127.0.0.1:9091}"
 COOKIES="$(mktemp)"; trap 'rm -f "$COOKIES"' EXIT
 log() { echo "[set_qbt_port] $(date -Is) $*"; }
 

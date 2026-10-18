@@ -28,7 +28,7 @@ services:
       USER: ${PIA_USER}
       PASS: ${PIA_PASS}
       LOC: ${PIA_LOC}
-      LOCAL_NETWORK: 192.168.20.0/24,172.18.0.0/16   # LAN + this bridge (arrs reach vpn:8080 / vpn:6789)
+      LOCAL_NETWORK: 192.168.20.0/24,172.18.0.0/16   # LAN + this bridge (arrs reach vpn:9091 / vpn:6789)
       VPNDNS: 1.1.1.1,8.8.8.8
       KEEPALIVE: 25
       RECONNECT: 1                # re-establish the tunnel if the endpoint stops answering
@@ -36,13 +36,14 @@ services:
       PORT_FORWARDING: ${PIA_PORT_FORWARDING}
       PORT_PERSIST: 1
       PORT_SCRIPT: /set_qbt_port.sh
+      QBT_URL: http://127.0.0.1:9091
       QBT_USER: ${QBT_USER}
       QBT_PASS: ${QBT_PASS}
     volumes:
       - pia-dat:/pia
       - ./scripts/set_qbt_port.sh:/set_qbt_port.sh:ro
     ports:
-      - "9091:8080"   # qBittorrent WebUI
+      - "9091:9091"   # qBittorrent WebUI (WEBUI_PORT=9091 so Host-header port validation passes by IP)
       - "6789:6789"   # NZBGet
 
   qbittorrent:
@@ -56,13 +57,13 @@ services:
         restart: true
     environment:
       <<: *lsio-env
-      WEBUI_PORT: 8080
+      WEBUI_PORT: 9091
     volumes:
       - ${CONFIG_DIRECTORY}/qbittorrent:/config
       - ${STORAGE_DIRECTORY}/data:/data
     healthcheck:
       # unhealthy if the tunnel interface is gone from this netns or the WebUI is down
-      test: ["CMD-SHELL", "test -d /sys/class/net/wg0 && curl -fsS -o /dev/null http://127.0.0.1:8080/ || exit 1"]
+      test: ["CMD-SHELL", "test -d /sys/class/net/wg0 && curl -fsS -o /dev/null http://127.0.0.1:9091/ || exit 1"]
       interval: 60s
       timeout: 5s
       retries: 3
