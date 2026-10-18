@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-01
 **Branch:** `restructure/data-layout`
-**Status:** Design approved, not yet implemented
+**Status:** Implemented 2026-10-18 (see the plan file header for deltas)
 
 ## Goal
 

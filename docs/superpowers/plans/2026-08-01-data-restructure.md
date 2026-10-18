@@ -1,5 +1,14 @@
 # /data Restructure Implementation Plan
 
+> **Status 2026-10-18: EXECUTED.** Run as part of the post-rebuild restructure (see
+> `/mnt/storage/_os-rebuild-2026-10/PROGRESS.md`, Session 4). Deltas from this plan:
+> counts were 143/957/289 series/movies/artists and 12 torrents; Plex + Tautulli moved to
+> `/mnt/flash/plex` (own project) instead of `docker-compose.plex.yml`; download clients use
+> `vpn:9091` / `vpn:6789`; `/mnt/storage` top level is not writable by c0re on 26.04 (not in
+> `nogroup`), so `data/` was created and `audio` moved with sudo; two extra path columns were
+> re-pointed that this plan missed: Radarr `Collections.RootFolderPath` (231 rows) and Lidarr
+> `TrackFiles.Path` (35,210 rows). Bluey: 5 title-consistent files imported, 14 left staged.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Consolidate downloads and media under a single `/data` bind mount so hardlinks and atomic moves work, and route new downloads into per-category folders.
