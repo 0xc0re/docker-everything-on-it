@@ -1,8 +1,10 @@
-# file~
-
-*~
-<<<<<<< HEAD
+# runtime state (bind-mounted container configs)
 config/
-=======
-
->>>>>>> 9da34690b8b1df3cc68f7bcfa1d8006e7b3e85b8
+!config/.gitkeep
+# secrets
+.env
+*.env
+!.env.example
+# editor/backup junk
+*~
+.migration-*/
