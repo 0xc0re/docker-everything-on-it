@@ -1,6 +1,5 @@
 # runtime state (bind-mounted container configs)
 config/
-!config/.gitkeep
 # secrets
 .env
 *.env

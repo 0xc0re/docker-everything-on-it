@@ -1,189 +1,217 @@
-version: '3.3'
+# Media automation stack. Plex + Tautulli live in /mnt/flash/plex (own project).
+# Run as c0re (docker group), never via sudo (sudo's USER overrides .env).
+# Never `docker restart wireguard-pia`; use `docker compose restart vpn` so qbittorrent/nzbget follow.
 
-services:    
-    vpn:        
-        container_name: wireguard-pia
-        hostname: wireguard-pia
-        image: thrnz/docker-wireguard-pia
-        volumes:
-            - pia-dat:/pia
-        ports:
-            - 9091:8080
-        cap_add:
-            - NET_ADMIN
-        environment:
-            - LOCAL_NETWORK=192.168.20.0/24
-            - LOC=us_south_west
-            - USER=${USER}
-            - PASS=${PASS}
-            - PORT_FORWARDING=1
-            - VPNDNS=1.1.1.1,8.8.8.8
-            - KEEPALIVE=25
-        sysctls:
-            - net.ipv4.conf.all.src_valid_mark=1
-        dns:
-            - 1.1.1.1
-            - 8.8.8.8
+x-lsio-env: &lsio-env
+  PUID: ${PUID}
+  PGID: ${PGID}
+  TZ: ${TZ}
 
-    qbittorrent:
-        container_name: qbittorrent
-#        hostname: qbittorrent
-        image: lscr.io/linuxserver/qbittorrent:latest
-        network_mode: "service:vpn"
-        environment:
-            - PUID=${PUID}
-            - PGID=${PGID}
-            - TZ=${TZ}
-        volumes:
-            - ${CONFIG_DIRECTORY}/qbittorrent:/config
-            - ${STORAGE_DIRECTORY}/downloads:/downloads
-            - ${STORAGE_DIRECTORY}/downloads:/data
-    sonarr:
-        container_name: sonarr
-        hostname: sonarr
-        image: linuxserver/sonarr:latest
-        restart: unless-stopped
-        volumes:
-            - ${CONFIG_DIRECTORY}/sonarr:/config
-            - ${STORAGE_DIRECTORY}/downloads:/data
-            - ${STORAGE_DIRECTORY}/video/tv:${STORAGE_DIRECTORY}/video/tv
-            - /etc/localtime:/etc/localtime:ro
-        ports:
-            - "8989:8989"
-        environment:
-            - PUID=${PUID}
-            - PGID=${PGID}
-            - TZ=${TZ}
+services:
+  vpn:
+    # WireGuard gateway to PIA. qbittorrent and nzbget share this network namespace.
+    image: thrnz/docker-wireguard-pia:latest
+    container_name: wireguard-pia
+    hostname: wireguard-pia
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+      - net.ipv6.conf.default.disable_ipv6=1
+      - net.ipv6.conf.all.disable_ipv6=1
+      - net.ipv6.conf.lo.disable_ipv6=1
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
+    environment:
+      USER: ${PIA_USER}
+      PASS: ${PIA_PASS}
+      LOC: ${PIA_LOC}
+      LOCAL_NETWORK: 192.168.20.0/24,172.18.0.0/16   # LAN + this bridge (arrs reach vpn:8080 / vpn:6789)
+      VPNDNS: 1.1.1.1,8.8.8.8
+      KEEPALIVE: 25
+      RECONNECT: 1                # re-establish the tunnel if the endpoint stops answering
+      ACTIVE_HEALTHCHECKS: 1      # ping over wg0 once/min so a dead tunnel reads unhealthy
+      PORT_FORWARDING: ${PIA_PORT_FORWARDING}
+      PORT_PERSIST: 1
+      PORT_SCRIPT: /set_qbt_port.sh
+      QBT_USER: ${QBT_USER}
+      QBT_PASS: ${QBT_PASS}
+    volumes:
+      - pia-dat:/pia
+      - ./scripts/set_qbt_port.sh:/set_qbt_port.sh:ro
+    ports:
+      - "9091:8080"   # qBittorrent WebUI
+      - "6789:6789"   # NZBGet
 
-    radarr:
-        container_name: radarr
-        hostname: radarr
-        image: linuxserver/radarr:latest
-        restart: unless-stopped
-        volumes:
-            - ${CONFIG_DIRECTORY}/radarr:/config
-            - ${STORAGE_DIRECTORY}/downloads:/data
-            - ${STORAGE_DIRECTORY}/video/movie:${STORAGE_DIRECTORY}/video/movie
-            - /etc/localtime:/etc/localtime:ro
-        ports:
-            - "7878:7878"
-        environment:
-            - PUID=${PUID}
-            - PGID=${PGID}
-            - TZ=${TZ}
-    lidarr:
-        image: lscr.io/linuxserver/lidarr
-        container_name: lidarr
-        environment:
-            - PUID=${PUID}
-            - PGID=${PGID}
-            - TZ=${TZ}
-        volumes:
-            - ${CONFIG_DIRECTORY}/lidarr/config:/config
-            - ${STORAGE_DIRECTORY}/audio:/music
-            - ${STORAGE_DIRECTORY}/downloads:/data            
-        ports:
-            - 8686:8686
-        restart: unless-stopped
-    nzbget:
-        image: ghcr.io/linuxserver/nzbget
-        container_name: nzbget
-        environment:
-            - PUID=${PUID}
-            - PGID=${PGID}
-            - TZ=${TZ}
-        volumes:
-            - ${CONFIG_DIRECTORY}/nzbget:/config
-            - ${STORAGE_DIRECTORY}/downloads:/data
-        ports:
-            - 6789:6789
-        restart: unless-stopped
-    plex:
-        container_name: plex
-        hostname: plex
-        image: linuxserver/plex:latest
-        restart: unless-stopped
-        network_mode: host
-        mem_limit: 16384m
-        runtime: nvidia
-        security_opt:
-            - seccomp=unconfined
-        environment:
-            - PUID=${PUID}
-            - PGID=${PGID}
-            - TZ=${TZ}
-            - VERSION=latest
-            - NVIDIA_VISIBLE_DEVICES=all
-        volumes:
-            - ${CONFIG_DIRECTORY}/plex/plex_db:/config:rw
-            - /dev/shm:/transcode:rw
-            - ${STORAGE_DIRECTORY}/video/movie:/mnt/storage/video/movie:rw
-            - ${STORAGE_DIRECTORY}/video/tv:/mnt/storage/video/tv:rw
-            - ${STORAGE_DIRECTORY}/audio:/mnt/storage/audio:rw
-            - ${STORAGE_DIRECTORY}/photos:/mnt/storage/photos:rw            
-        devices:
-            - /dev/dri:/dev/dri
-    tautulli:
-        image: ghcr.io/linuxserver/tautulli
-        container_name: tautulli
-        volumes:
-            - ${CONFIG_DIRECTORY}/tautulli:/config
-            - ${CONFIG_DIRECTORY}/plex/plex_db/Library/Application\ Support/Plex\ Media\ Server/Logs:/logs
-        network_mode: host # Removed port binding for network_mode: host
-        mem_limit: 4096m
-        restart: unless-stopped
-        environment:
-            - PUID=${PUID}
-            - PGID=${PGID}
-            - TZ=${TZ}
-    bazarr:
-        image: lscr.io/linuxserver/bazarr:latest
-        container_name: bazarr
-        environment:
-            - PUID=${PUID}
-            - PGID=${PGID}
-            - TZ=${TZ}
-        volumes:
-            - ${CONFIG_DIRECTORY}/bazarr:/config
-            - ${STORAGE_DIRECTORY}/video/movie:/movies #optional
-            - ${STORAGE_DIRECTORY}/video/tv:/tv #optional
-        ports:
-            - 6767:6767
-        restart: unless-stopped    
-    prowlarr:
-        image: ghcr.io/hotio/prowlarr
-        container_name: prowlarr
-        environment:
-            - PUID=${PUID}
-            - PGID=${PGID}
-            - UMASK=002
-            - TZ=${TZ}
-        volumes:
-        - ${CONFIG_DIRECTORY}/prowlarr:/config
-        ports:
-        - 9696:9696
-        restart: unless-stopped        
-    flaresolverr:
-        image: ghcr.io/flaresolverr/flaresolverr:latest
-        container_name: flaresolverr
-        environment:
-            - LOG_LEVEL=info
-        ports:
-            - 8191:8191
-        restart: unless-stopped
-    overseerr:
-        image: sctx/overseerr
-        container_name: overseerr
-        environment:
-            - LOG_LEVEL=debug
-            - PUID=${PUID}
-            - PGID=${PGID}
-            - TZ=${TZ}
-            - PORT=5055 #optional
-        ports:
-            - "5055:5055"
-        volumes:
-            - ${CONFIG_DIRECTORY}/overseer/config:/app/config
-        restart: unless-stopped
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    restart: unless-stopped
+    network_mode: "service:vpn"
+    depends_on:
+      vpn:
+        condition: service_healthy
+        restart: true
+    environment:
+      <<: *lsio-env
+      WEBUI_PORT: 8080
+    volumes:
+      - ${CONFIG_DIRECTORY}/qbittorrent:/config
+      - ${STORAGE_DIRECTORY}/data:/data
+    healthcheck:
+      # unhealthy if the tunnel interface is gone from this netns or the WebUI is down
+      test: ["CMD-SHELL", "grep -q wg0 /proc/net/route && curl -fsS -o /dev/null http://127.0.0.1:8080/ || exit 1"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+  nzbget:
+    image: lscr.io/linuxserver/nzbget:latest
+    container_name: nzbget
+    restart: unless-stopped
+    network_mode: "service:vpn"
+    depends_on:
+      vpn:
+        condition: service_healthy
+        restart: true
+    environment:
+      <<: *lsio-env
+    volumes:
+      - ${CONFIG_DIRECTORY}/nzbget:/config
+      - ${STORAGE_DIRECTORY}/data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "grep -q wg0 /proc/net/route && curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:6789/ | grep -qE '^(200|401)$' || exit 1"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    hostname: sonarr
+    restart: unless-stopped
+    environment:
+      <<: *lsio-env
+    volumes:
+      - ${CONFIG_DIRECTORY}/sonarr:/config
+      - ${STORAGE_DIRECTORY}/data:/data
+    ports:
+      - "8989:8989"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8989/ping || exit 1"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    hostname: radarr
+    restart: unless-stopped
+    environment:
+      <<: *lsio-env
+    volumes:
+      - ${CONFIG_DIRECTORY}/radarr:/config
+      - ${STORAGE_DIRECTORY}/data:/data
+    ports:
+      - "7878:7878"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:7878/ping || exit 1"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+  lidarr:
+    image: lscr.io/linuxserver/lidarr:latest
+    container_name: lidarr
+    hostname: lidarr
+    restart: unless-stopped
+    environment:
+      <<: *lsio-env
+    volumes:
+      - ${CONFIG_DIRECTORY}/lidarr/config:/config
+      - ${STORAGE_DIRECTORY}/data:/data
+    ports:
+      - "8686:8686"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8686/ping || exit 1"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+  prowlarr:
+    # hotio kept on purpose: identical /config layout to lscr; swap is optional (docs/removed-services.md)
+    image: ghcr.io/hotio/prowlarr:latest
+    container_name: prowlarr
+    restart: unless-stopped
+    environment:
+      <<: *lsio-env
+      UMASK: "002"
+    volumes:
+      - ${CONFIG_DIRECTORY}/prowlarr:/config
+    ports:
+      - "9696:9696"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:9696/ping || exit 1"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    restart: unless-stopped
+    environment:
+      LOG_LEVEL: info
+      TZ: ${TZ}
+    ports:
+      - "8191:8191"
+
+  seerr:
+    # Successor of Overseerr. Runs as uid 1000 (node); config dir must be owned 1000:1000.
+    image: ghcr.io/seerr-team/seerr:latest
+    container_name: seerr
+    restart: unless-stopped
+    init: true
+    environment:
+      LOG_LEVEL: info
+      TZ: ${TZ}
+      PORT: 5055
+    volumes:
+      - ${CONFIG_DIRECTORY}/seerr:/app/config
+    ports:
+      - "5055:5055"
+
+  maintainerr:
+    image: ghcr.io/maintainerr/maintainerr:latest
+    container_name: maintainerr
+    restart: unless-stopped
+    user: "${PUID}:${PGID}"
+    environment:
+      TZ: ${TZ}
+    volumes:
+      - ${CONFIG_DIRECTORY}/maintainerr:/opt/data
+    ports:
+      - "6246:6246"
+
 volumes:
-    pia-dat:
+  pia-dat:
+
+networks:
+  default:
+    name: docker-everything-on-it_default
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: br-media   # stable name for the host firewall (docker-guard nft table)
+    ipam:
+      config:
+        - subnet: 172.18.0.0/16
+          gateway: 172.18.0.1
