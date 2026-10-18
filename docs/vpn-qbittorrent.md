@@ -20,7 +20,7 @@
 - `WebUI\LocalHostAuth=false`: only vpn/qbittorrent/nzbget share 127.0.0.1 in that namespace, so
   localhost API calls (healthcheck, port script) need no credentials. The WebUI is still
   password-protected from the LAN/NPM.
-- Port forwarding: `PIA_PORT_FORWARDING=1` with a PF-capable region (`PIA_LOC=ca_toronto,ca_ontario,mexico`).
+- Port forwarding: `PIA_PORT_FORWARDING=1` with a PF-capable region (`PIA_LOC=ca_vancouver,mexico,ca_ontario,ca_toronto` (Toronto's PF API was refusing connections on 2026-10-18)).
   On every (re)connect the vpn container runs `scripts/set_qbt_port.sh <port>`, which pushes the
   forwarded port into qBittorrent via its API. The port is also in `/pia-shared/port.dat` inside
   the vpn container. `PORT_PERSIST=1` tries to keep the same port across restarts.
@@ -42,3 +42,10 @@ grep 'Successfully listening on IP' config/qbittorrent/qBittorrent/logs/qbittorr
 docker exec wireguard-pia cat /pia-shared/port.dat
 docker exec qbittorrent sh -c 'wget -qO- --timeout=5 https://ipinfo.io/ip; echo'   # PIA address
 ```
+
+## Watchdog
+Docker's restart policy ignores compose `depends_on`. `scripts/vpn-dependents-watch.sh` runs every
+2 minutes from `arr-vpn-watch.timer` (host systemd, as c0re): if wireguard-pia is healthy and
+qbittorrent/nzbget are exited or unhealthy, it brings them back through compose so they re-join the
+vpn's current network namespace. The container healthchecks test real traffic over wg0
+(`curl --interface wg0 https://1.1.1.1`), so a dead tunnel reads unhealthy within ~3 minutes.

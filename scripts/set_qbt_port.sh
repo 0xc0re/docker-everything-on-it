@@ -1,7 +1,7 @@
 #!/bin/bash
 # PORT_SCRIPT for thrnz/docker-wireguard-pia: run inside the vpn container with the
 # forwarded port as $1 whenever PIA assigns (or changes) it. qBittorrent shares this
-# network namespace, so its WebUI is 127.0.0.1:8080. Needs curl + jq (present in the image).
+# network namespace, so its WebUI is 127.0.0.1:9091 (WEBUI_PORT). Needs curl + jq (present in the image).
 # Auth: none needed when qBittorrent.conf has WebUI\LocalHostAuth=false; otherwise set
 # QBT_USER/QBT_PASS in the vpn service environment.
 set -euo pipefail
