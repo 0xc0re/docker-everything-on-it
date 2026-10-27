@@ -1,9 +1,15 @@
 #!/bin/bash
 
 port="$1"
-QBT_USER=admin
-QBT_PASS=REDACTED_QBT_PASSWORD
-QBT_PORT=9091
+dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$dir/.env" ]; then
+  set -a; . "$dir/.env"; set +a
+fi
+QBT_PORT="${QBT_PORT:-9091}"
+if [ -z "${QBT_USER:-}" ] || [ -z "${QBT_PASS:-}" ]; then
+  echo "script.sh: QBT_USER and QBT_PASS must be set (export them or add them to .env)" >&2
+  exit 1
+fi
 
 echo "Setting qBittorrent port settings ($port)..."
 # Very basic retry logic so we don't fail if qBittorrent isn't running yet
